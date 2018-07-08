@@ -1,0 +1,16 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/er/Documents/d_development/MMVII/TestER/src/CPP_TestEqCollinear.cpp
+iostream
+-
+ceres/ceres.h
+/home/er/Documents/d_development/MMVII/TestER/src/ceres/ceres.h
+ceres/types.h
+/home/er/Documents/d_development/MMVII/TestER/src/ceres/types.h
+
