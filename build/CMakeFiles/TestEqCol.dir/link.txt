@@ -1,1 +1,0 @@
-/usr/bin/c++      CMakeFiles/TestEqCol.dir/src/CPP_TestEqCollinear.cpp.o  -o TestEqCol -rdynamic 
