@@ -37,7 +37,8 @@ int main(int argc, char** argv)
     else if (aArg1 == "GBA")
     {
         std::cout << aArg1 << "\n";
-        TestGraphBA_main(argc,argv);
+        return(TestGraphBA_main(argc,argv));
+        //return(1);
     }
     else if (aArg1 == "EQCOL")
     {

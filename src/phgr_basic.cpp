@@ -3,7 +3,7 @@
 ///Rotation around X,Y,Z (Angles[3]). 
 ///The second and third rotations are done around the rotated axes of the object's frame
 template <typename T>
-static void Rot3D(const T* Angles, ceres::MatrixAdapter<T, 3, 3>& R)
+static void Rot3D(const T* Angles, Eigen::Matrix<T,3,3>& R)
 {
     R(0,0) = cos(Angles[2])*cos(Angles[1]);
     R(0,1) = -sin(Angles[2])*cos(Angles[1]);
@@ -20,7 +20,7 @@ static void Rot3D(const T* Angles, ceres::MatrixAdapter<T, 3, 3>& R)
 }
 
 template <typename T>
-static void RotX(const T* Angle, ceres::MatrixAdapter<T, 3, 3>& R)
+static void RotX(const T* Angle, Eigen::Matrix<T,3,3>& R)
 {
     R(0,0) = 1;
     R(0,1) = 0;
@@ -36,7 +36,7 @@ static void RotX(const T* Angle, ceres::MatrixAdapter<T, 3, 3>& R)
 }
 
 template <typename T>
-static void RotY(const T* Angle, ceres::MatrixAdapter<T, 3, 3>& R)
+static void RotY(const T* Angle, Eigen::Matrix<T,3,3>& R)
 {
     R(0,0) = cos(Angle);
     R(0,1) = 0;
@@ -53,7 +53,7 @@ static void RotY(const T* Angle, ceres::MatrixAdapter<T, 3, 3>& R)
 }
 
 template <typename T>
-static void RotZ(const T* Angle, ceres::MatrixAdapter<T, 3, 3>& R)
+static void RotZ(const T* Angle, Eigen::Matrix<T,3,3>& R)
 {
     R(0,0) = cos(Angle);
     R(0,1) = -sin(Angle);

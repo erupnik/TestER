@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 
+#include "Types.h"
 
 /* Ceres */
 #include "ceres/ceres.h"
@@ -15,17 +16,21 @@
 #include "gflags/gflags.h"
 #include "glog/logging.h"
 
+
+
 /* Rotations, definitions in Rotations.h */
 template <typename T>
-static void Rot3D(const T* Angle, ceres::MatrixAdapter<T, 3, 3>& R);
+static void Rot3D(const T* Angle, Eigen::Matrix<T,3,3>& R);
 
 template <typename T>
-static void RotX(const T* Angle, ceres::MatrixAdapter<T, 3, 3>& R);
+static void RotX(const T* Angle, Eigen::Matrix<T,3,3>& R);
 
 template <typename T>
-static void RotY(const T* Angle, ceres::MatrixAdapter<T, 3, 3>& R);
+static void RotY(const T* Angle, Eigen::Matrix<T,3,3>& R);
 
 template <typename T>
-static void RotZ(const T* Angle, ceres::MatrixAdapter<T, 3, 3>& R);
+static void RotZ(const T* Angle, Eigen::Matrix<T,3,3>& R);
+
+
 
 #endif //_ALL_H
