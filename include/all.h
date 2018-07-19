@@ -20,6 +20,9 @@
 
 /* Rotations, definitions in Rotations.h */
 template <typename T>
+static void Rot3D(const T* Angles, T[3][3] );
+
+template <typename T>
 static void Rot3D(const T* Angle, Eigen::Matrix<T,3,3>& R);
 
 template <typename T>
@@ -31,6 +34,9 @@ static void RotY(const T* Angle, Eigen::Matrix<T,3,3>& R);
 template <typename T>
 static void RotZ(const T* Angle, Eigen::Matrix<T,3,3>& R);
 
-
+/* Some useful matrix operations */
+/* POut = R * (PIn - Tr)  */
+template <typename T>
+static void RotTr (T[3][3] ,T[3] ,T[3] ,T[3] );
 
 #endif //_ALL_H

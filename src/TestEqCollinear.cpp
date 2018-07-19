@@ -20,6 +20,12 @@ class ResidualError
                          T* Residual);
 
 
+        template <typename T>
+        bool operator2  (const T* const aAngleT,
+                         const T* const aCPerspT,
+                         const T* const aPt3T,
+                         const T* const aInCal,
+                         T* Residual);
 
 
     private:
@@ -31,7 +37,7 @@ class ResidualError
     
 };
 
-
+/* AutoDiff calculated on Eigen matrices */
 template <typename T>
 bool ResidualError::operator()(const T* const aAngleT,
                                const T* const aCPerspT,
@@ -70,6 +76,42 @@ bool ResidualError::operator()(const T* const aAngleT,
 
     return true;
 }
+
+/* AutoDiff on doubles */
+template <typename T>
+bool ResidualError::operator2(const T* const aAngleT,
+                              const T* const aCPerspT,
+                              const T* const aPt3T,
+                              const T* const aInCal,
+                              T* Residual)
+{
+    T[3][3] aRot;
+    Rot3D(aAngleT,aRot);
+
+    T aPP[2];
+    T aFoc = aInCal[0];
+    aPP[0] = aInCal[1];
+    aPP[1] = aInCal[2];
+    T aDR1 = aInCal[3];
+    T aDR2 = aInCal[4]; 
+
+    T aPtCam;
+    RotTr(aRot,aCPerspT,aPt3T,aPtCam);
+
+    T aPtCamDir (aPtCam.x/aPtCam.z,aPtCam.y/aPtCam.z);
+    T aRho2 = aPtCamDir.x.sqrt() + aPtCamDir.y.sqrt();
+    T aRho4 = aRho2 * aRho2;
+    T aDist = 1.0 + aRho2*aDR1 + aRho4*aDR2;
+
+    aPtCamDir = aDist*aPtCamDir;
+
+    T aPtImProj = aFoc*aPtCamDir + aPP;
+    Residual = mPtIm - aPtImProj;
+
+
+    return true;
+}
+
 
 /* Application class */
 class cAppliTestEqCollinear 
