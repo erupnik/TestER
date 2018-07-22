@@ -1,16 +1,26 @@
 #include "TestEqCollinear.h"
 
-/* functions */
-//re-projection
+
+/* Application classe managing data (obs, params) taken from ceres */
+//class BALProblem;
+
+/* Classes to manage the solver*/
+class cBundleAdj;
+class cBundleAdjSimple;
 
 /* Cost function */
+class cResidualError;
 
-class ResidualError
+
+
+
+
+class cResidualError
 {
     public :
-        ResidualError(const Eigen::Vector2d& aPtIm) : 
+        cResidualError(const Eigen::Vector2d& aPtIm) : 
           mPtIm   (aPtIm) {}
-        ~ResidualError(){}
+        ~cResidualError(){}
 
         template <typename T>
         bool operator ()(const T* const aAngleT,    
@@ -30,7 +40,7 @@ class ResidualError
 
     private:
 
-    const Eigen::Vector2d& mPtIm;
+        const Eigen::Vector2d& mPtIm;
 
     
 
@@ -39,7 +49,7 @@ class ResidualError
 
 /* AutoDiff calculated on Eigen matrices */
 template <typename T>
-bool ResidualError::operator()(const T* const aAngleT,
+bool cResidualError::operator()(const T* const aAngleT,
                                const T* const aCPerspT,
                                const T* const aPt3T,
                                const T* const aInCal,
@@ -79,13 +89,13 @@ bool ResidualError::operator()(const T* const aAngleT,
 
 /* AutoDiff on doubles */
 template <typename T>
-bool ResidualError::operator2(const T* const aAngleT,
+bool cResidualError::operator2(const T* const aAngleT,
                               const T* const aCPerspT,
                               const T* const aPt3T,
                               const T* const aInCal,
                               T* Residual)
 {
-    T[3][3] aRot;
+    T aRot[3][3];
     Rot3D(aAngleT,aRot);
 
     T aPP[2];
@@ -113,32 +123,93 @@ bool ResidualError::operator2(const T* const aAngleT,
 }
 
 
-/* Application class */
-class cAppliTestEqCollinear 
+/* General bundle adjustement class */
+class cBundleAdj
 {
     public:
-        cAppliTestEqCollinear();
-        ~cAppliTestEqCollinear(){};
+        cBundleAdj();
+        ~cBundleAdj(){}
 
-        void SetCeresOptions();
-        void SetOrdering();
-        void BuildCeresProblem();
+        virtual void Optimize();
+        virtual void BuildProblem();
+        virtual void SetCeresOptions();
+        virtual void SetOrdering();
+
         
-        void LoadData();        
-
-    private:
-       ceres::Solver::Summary mSummary;
-
-       //poses
-       //calibration
-       //points homologues
-
 };
+
+cBundleAdj::cBundleAdj(){}
+
+void cBundleAdj::Optimize()
+{}
+
+void cBundleAdj::BuildProblem()
+{}
+
+void cBundleAdj::SetCeresOptions()
+{}
+
+void cBundleAdj::SetOrdering()
+{}
+
+
+/* Very simple bundle */
+class cBundleAdjSimple : public cBundleAdj
+{
+    public:
+        cBundleAdjSimple(BALProblem&);
+        ~cBundleAdjSimple(){}
+
+        virtual void Optimize();
+
+
+    private:    
+
+        //allocate the solver with observations/parameters 
+        virtual void BuildProblem();
+        
+        virtual void SetCeresOptions();//see bundle_adjuster.cc for setting options
+        virtual void SetOrdering();
+
+        BALProblem * mBAProblem;
+        ceres::Solver::Summary        mSummary;
+};
+
+cBundleAdjSimple::cBundleAdjSimple(BALProblem& aBAP) //:
+    //mBAProblem(&aBAP)
+{
+}
+
+void cBundleAdjSimple::Optimize()
+{}
+
+void cBundleAdjSimple::BuildProblem()
+{}
+
+void cBundleAdjSimple::SetCeresOptions()
+{}
+
+void cBundleAdjSimple::SetOrdering()
+{}
 
 
 int TestEqCollinear_main(int argc,char ** argv)
 {
 
+    /* Load the input data */
+    const char*  aFile = "bb";
+    BALProblem aBAProb(aFile,false); 
+    //if (!aBAProb.LoadFile(argv[1]))
+    //    std::cout << "Couldn't open the file with input data\n";
+
+    /* Allocate in the solver */
+    cBundleAdjSimple aBAS(aBAProb);
+    
+    /* Solve */
+    aBAS.Optimize();
+
+    aBAProb.WriteToPLYFile("BAPr-adj.ply"); 
+    
     /* 
        1/  load data
             + save the MicMac pose in the BAL format

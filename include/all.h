@@ -16,7 +16,7 @@
 #include "gflags/gflags.h"
 #include "glog/logging.h"
 
-
+#include "Eigen/Core"
 
 /* Rotations, definitions in Rotations.h */
 template <typename T>
