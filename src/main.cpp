@@ -11,8 +11,13 @@ void PrintHelp(std::string aArg)
               << "Options:\n"
               << "\t-h,--help\tShow this help message\n"
               << "\tGBA \tfor graph tests;\n"
-              << "\tEQCOL\tfor tests on collinearity equation"
-              << std::endl;    
+              << "\tEQCOL\tfor tests on collinearity equation\n";
+}
+
+void PrintHelpEQCOL(std::string aArg)
+{
+    std::cerr << "Usage: " << aArg << " \n"   
+              << "first_arg :: the BAL format file\n";
 }
 
 int main(int argc, char** argv)
@@ -29,7 +34,7 @@ int main(int argc, char** argv)
     std::string aArg1 = std::string(argv[1]);
 
 
-    if ((aArg1 == "-h") || (aArg1 == "--help"))
+    if ((aArg1 == "-h") || (aArg1 == "--help") || (aArg1 == "-help"))
     {
         std::cout << aArg1 << "\n";
         PrintHelp(argv[0]);
@@ -43,6 +48,17 @@ int main(int argc, char** argv)
     else if (aArg1 == "EQCOL")
     {
         std::cout << aArg1 << "\n";
+        if (argc==3) 
+        {
+            std::string aArg2 = std::string(argv[2]);
+            if ((aArg2 == "-h") || (aArg2 == "--help") || (aArg2 == "-help"))
+            {
+                PrintHelpEQCOL(argv[1]);
+                return 1;
+            }
+        }
+
+
         return(TestEqCollinear_main(argc,argv));
     }
     else

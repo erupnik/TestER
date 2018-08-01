@@ -25,11 +25,13 @@ include_directories("src")
 
 file(GLOB_RECURSE TestER_SRC
     "src/main.cpp"
+    "src/phgr_basic.cpp"
     "src/TestEqCollinear.cpp"
     "src/BALProblem.cpp"
+
 )
 
-add_executable(${PROJECT_NAME} "src/main.cpp" "src/TestEqCollinear.cpp" "src/BALProblem.cpp" "src/Graphs/GraphBasedBA.cpp")
+add_executable(${PROJECT_NAME} "src/main.cpp" "src/TestEqCollinear.cpp" "src/BALProblemVec.cpp" "src/BALProblem.cpp" "src/Graphs/GraphBasedBA.cpp")
 #add_executable(${PROJECT_NAME} "src/main.cpp" "src/TestEqCollinear.cpp")
 
 target_link_libraries(${PROJECT_NAME} ${CERES_LIBRARIES})
