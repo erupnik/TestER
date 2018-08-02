@@ -1,4 +1,7 @@
 #include "all.h"
+#ifndef BALProblemVec_H
+#define BALProblemVec_H
+
 
 class cPose
 {
@@ -18,6 +21,7 @@ class cPose
         int aNumCal;
 };
 
+
 class BALProblemVec
 {
     public:
@@ -30,20 +34,22 @@ class BALProblemVec
         bool ReadBAL   (const std::string&); 
         void WriteToPly(const std::string&);
  
-        Vec3d& PoseCPOfPt(const int);
-        Vec3d& PoseROfPt(const int);
-        double*& PoseCalOfPt(const int);
-        Vec3d& Pt3dOfPt2d(const int);
+        Vec3d* PoseCPOfPt(const int);
+        double* PoseCPOfPt(const int,const int);
+        Vec3d* PoseROfPt(const int);
+        double* PoseROfPt(const int,const int);
+        double* PoseCalOfPt(const int);
+        Vec3d* Pt3dOfPt2d(const int);
+        double* Pt3dOfPt2d(const int,const int);
 
 
     private:
-        
         std::vector<Vec2d>    mVecObs;
         std::vector<int>      mVecObsPoseId;
         std::vector<int>      mVecObsPt3dId;
 
-        std::vector<cPose*>    mPoses;
-        std::vector<Vec3d*>    mPt3d;
+        std::vector<cPose>    mPoses;
+        std::vector<Vec3d>    mPt3d;
 
         int mObsNum;
         int mPtNum;
@@ -52,3 +58,5 @@ class BALProblemVec
     
 
 };
+
+#endif

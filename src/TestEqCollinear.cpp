@@ -1,8 +1,9 @@
 #include "TestEqCollinear.h"
 
 
-/* Application classe managing data (obs, params) taken from ceres */
-class BALProblemVec;
+/* Application classes managing data (obs, params) taken from ceres */
+class BALProblemVec;//uses Eigen vectors
+class BALProblem_;  //uses double* et int*
 
 /* Classes to manage the solver*/
 class cBundleAdj;
@@ -16,13 +17,16 @@ void Rot3D(const T* const Angle, Eigen::Matrix<T,3,3>& R);
 
 using namespace ceres;
 
-//typedef Eigen::Vector2d Vec2d;
-
 class cResidualError
 {
     public :
         cResidualError(Vec2d& aPtIm) : 
-          mPtIm   (aPtIm) {}
+          mPtImX   (aPtIm[0]),
+          mPtImY   (aPtIm[1]) {}
+        cResidualError(double PtImX,double PtImY) : 
+          mPtImX(PtImX),
+          mPtImY(PtImY) {}
+
         ~cResidualError(){}
 
         template <typename T>
@@ -37,10 +41,30 @@ class cResidualError
                         const T* const aPTerY,
                         const T* const aPterZ,
                         T* Residual) const;
+        
+        template <typename T>
+        bool operatorMicMac(const T* const aWT,
+                        const T* const aPT,
+                        const T* const aKT,
+                        const T* const aCPX,
+                        const T* const aCPY,
+                        const T* const aCPZ,
+                        const T* const aCal,
+                        const T* const aPTerX,
+                        const T* const aPTerY,
+                        const T* const aPterZ,
+                        T* Residual) const;
 
 
         template <typename T>
-        bool operator ()(const T* const aAngleT,    
+        bool operatorMicMac(const T* const aAngleT,    
+                         const T* const aCPerspT,
+                         const T* const aInCal,
+                         const T* const aPt3T,
+                         T* Residual) const;
+
+        template <typename T>
+        bool operator()(const T* const aAngleT,    
                          const T* const aCPerspT,
                          const T* const aInCal,
                          const T* const aPt3T,
@@ -54,18 +78,20 @@ class cResidualError
                          const T* const aPt3T,
                          T* Residual) const;
     
-        static CostFunction * Create(Vec2d&);
+        static CostFunction * Create_1ELBLOCKS_VEC(Vec2d&);
+        static CostFunction * Create_1ELBLOCKS(const double,const double);
+        static CostFunction * Create_3ELBLOCKS(const double,const double);
 
     private:
 
-        Vec2d mPtIm;
-
+        double mPtImX;
+        double mPtImY;
     
 
     
 };
 
-CostFunction * cResidualError::Create(Vec2d& aPtIm)
+CostFunction * cResidualError::Create_1ELBLOCKS_VEC(Vec2d& aPtIm)
 {
     /* 2- residual
        3- angles
@@ -73,11 +99,24 @@ CostFunction * cResidualError::Create(Vec2d& aPtIm)
        5- PPx,PPy,focal,dr1,dr2 
        3- point 3d */
 
-    //return  (new AutoDiffCostFunction<cResidualError,2,3,3,5,3> (new cResidualError(aPtIm)));
     return  (new AutoDiffCostFunction<cResidualError,2,1,1,1,1,1,1,5,1,1,1> (new cResidualError(aPtIm)));
 }
 
-/* Parameters submitted one by one */
+CostFunction * cResidualError::Create_1ELBLOCKS(const double PtImX,const double PtImY)
+{
+
+    return  (new AutoDiffCostFunction<cResidualError,2,1,1,1,1,1,1,5,1,1,1> (new cResidualError(PtImX,PtImY)));
+
+}
+
+CostFunction * cResidualError::Create_3ELBLOCKS(const double PtImX,const double PtImY)
+{
+
+    return  (new AutoDiffCostFunction<cResidualError,2,3,3,5,3> (new cResidualError(PtImX,PtImY)));
+
+}
+
+/* Bundler M2C : Parameters submitted one by one, operations on doubles */
 template <typename T>
 bool cResidualError::operator()(const T* const aWT,
                                 const T* const aPT,
@@ -90,15 +129,143 @@ bool cResidualError::operator()(const T* const aWT,
                                 const T* const aPTerY,
                                 const T* const aPTerZ,
                                 T* Residual) const
+
 {
+
+    T aAngles[3] = {*aWT,*aPT,*aKT};
+    T aCP[3]   = {*aCPX,*aCPY,*aCPZ};
+    T aPTer[3] = {*aPTerX,*aPTerY,*aPTerZ};
+
+
+    T aPtCam[3];
+    ceres::AngleAxisRotatePoint(aAngles,aPTer,aPtCam);
+
+
+    aPtCam[0] += aCP[0];
+    aPtCam[1] += aCP[1];
+    aPtCam[2] += aCP[2];
+
+    T aPP[2];
+    T aFoc = aCal[0];
+    aPP[0] = aCal[1];
+    aPP[1] = aCal[2];
+    T aDR1 = aCal[3];
+    T aDR2 = aCal[4];
+
+
+    T aPtCamDir[2] = {-aPtCam[0]/aPtCam[2],
+                      -aPtCam[1]/aPtCam[2]};
+
+
+    T aR2 = aPtCamDir[0] * aPtCamDir[0] + aPtCamDir[1] * aPtCamDir[1];
+    T aR4 = aR2 * aR2;
+    T aDist = 1.0 + aR2*aDR1 + aR4*aDR2;
+
+    aPtCamDir[0] = aDist*aPtCamDir[0];
+    aPtCamDir[1] = aDist*aPtCamDir[1];
+
+    T aPtImProj[2];
+    aPtImProj[0] = aFoc*aPtCamDir[0] + aPP[0];
+    aPtImProj[1] = aFoc*aPtCamDir[1] + aPP[1];
+    
+    Residual[0] = -mPtImX + aPtImProj[0];
+    Residual[1] = -mPtImY + aPtImProj[1];
+
+    return true;
+}
+
+
+/* MicMac  M2C : Parameters submitted one by one, operations on doubles */
+template <typename T>
+bool cResidualError::operatorMicMac(const T* const aWT,
+                                const T* const aPT,
+                                const T* const aKT,
+                                const T* const aCPX,
+                                const T* const aCPY,
+                                const T* const aCPZ,
+                                const T* const aCal,
+                                const T* const aPTerX,
+                                const T* const aPTerY,
+                                const T* const aPTerZ,
+                                T* Residual) const
+
+{
+
+    T aAngles[3] = {*aWT,*aPT,*aKT};
+
+    T aRot[3][3];
+    Rot3D(aAngles,aRot);
+
+    T aCP[3]   = {*aCPX,*aCPY,*aCPZ};
+    T aPTer[3] = {*aPTerX,*aPTerY,*aPTerZ};
+
+
+    T aPP[2];
+    T aFoc = aCal[0];
+    aPP[0] = aCal[1];
+    aPP[1] = aCal[2];
+    T aDR1 = aCal[3];
+    T aDR2 = aCal[4];
+
+    T aPtCam[3];
+    RotTr(aRot,aCP,aPTer,aPtCam);
+
+    T aPtCamDir[2] = {aPtCam[0]/aPtCam[2],
+                      aPtCam[1]/aPtCam[2]};
+
+
+
+
+    T aRho2 = aPtCamDir[0] * aPtCamDir[0] + aPtCamDir[1] * aPtCamDir[1];
+    T aRho4 = aRho2 * aRho2;
+    T aDist = 1.0 + aRho2*aDR1 + aRho4*aDR2;
+
+    aPtCamDir[0] = aDist*aPtCamDir[0];
+    aPtCamDir[1] = aDist*aPtCamDir[1];
+
+    T aPtImProj[2];
+    aPtImProj[0] = aFoc*aPtCamDir[0] + aPP[0];
+    aPtImProj[1] = aFoc*aPtCamDir[1] + aPP[1];
+    
+    Residual[0] = mPtImX - aPtImProj[0];
+    Residual[1] = mPtImY - aPtImProj[1];
+
+    return true;
+}
+
+
+/* Parameters submitted one by one, operations on Eigen vectors */
+/*template <typename T>
+bool cResidualError::operator()(const T* const aWT,
+                                const T* const aPT,
+                                const T* const aKT,
+                                const T* const aCPX,
+                                const T* const aCPY,
+                                const T* const aCPZ,
+                                const T* const aCal,
+                                const T* const aPTerX,
+                                const T* const aPTerY,
+                                const T* const aPTerZ,
+                                T* Residual) const
+{
+    std::cout << "AddResidualBlock " << "\n";
     typedef Eigen::Matrix<T,3,3> Mat3T;
     typedef Eigen::Matrix<T,3,1> Vec3T;
     typedef Eigen::Matrix<T,2,1> Vec2T;
+
+
+
+    getchar();
+    std::cout << "AddResidualBlock " << *aWT << " " << *aPT << " " << *aKT << "\n";
+
+    getchar();
 
     Vec3T aAngles;
     aAngles[0]=*aWT; 
     aAngles[1]=*aPT; 
     aAngles[2]=*aKT; 
+    std::cout << "AddResidualBlock " << aAngles[0] << " " << aAngles[1] << " " << aAngles[2] << "\n";
+    getchar();
 
     Mat3T aRot;
     Rot3D(aAngles,aRot);
@@ -135,11 +302,59 @@ bool cResidualError::operator()(const T* const aWT,
 
 
     return true;
-}
+}*/
 
-/* AutoDiff calculated on Eigen matrices */
+
+/* Bundler M2C : AutoDiff calculated on doubles */
 template <typename T>
 bool cResidualError::operator()(const T* const aAngleT,
+                                const T* const aCPerspT,
+                                const T* const aCal,
+                                const T* const aPt3T,
+                                T* Residual) const
+{
+
+    T aPtCam[3];
+    ceres::AngleAxisRotatePoint(aAngleT,aPt3T,aPtCam);
+
+    aPtCam[0] += aCPerspT[0];
+    aPtCam[1] += aCPerspT[1];
+    aPtCam[2] += aCPerspT[2];
+
+    T aPtCamDir[2] = {-aPtCam[0]/aPtCam[2],
+                      -aPtCam[1]/aPtCam[2]}; 
+   
+    T aPP[2];
+    T aFoc = aCal[0];
+    aPP[0] = aCal[1];
+    aPP[1] = aCal[2];
+    T aDR1 = aCal[3];
+    T aDR2 = aCal[4];
+
+
+    T aRho2 = aPtCamDir[0] * aPtCamDir[0] + aPtCamDir[1] * aPtCamDir[1];
+    T aRho4 = aRho2 * aRho2;
+    T aDist = 1.0 + aRho2*aDR1 + aRho4*aDR2;
+
+    aPtCamDir[0] = aDist*aPtCamDir[0];
+    aPtCamDir[1] = aDist*aPtCamDir[1];
+
+    T aPtImProj[2];
+    aPtImProj[0] = aFoc*aPtCamDir[0] + aPP[0];
+    aPtImProj[1] = aFoc*aPtCamDir[1] + aPP[1];
+
+    Residual[0] = -mPtImX + aPtImProj[0];
+    Residual[1] = -mPtImY + aPtImProj[1];
+
+
+    return true;
+}
+
+
+
+/* MicMac M2C : AutoDiff calculated on Eigen matrices */
+template <typename T>
+bool cResidualError::operatorMicMac(const T* const aAngleT,
                                 const T* const aCPerspT,
                                 const T* const aInCal,
                                 const T* const aPt3T,
@@ -173,13 +388,13 @@ bool cResidualError::operator()(const T* const aAngleT,
     aPtCamDir = aDist*aPtCamDir;
      
     Vec2T aPtImProj = aFoc*aPtCamDir + aPP;
-    Residual[0] = mPtIm[0] - aPtImProj[0];
-    Residual[1] = mPtIm[1] - aPtImProj[1];
+    Residual[0] = mPtImX - aPtImProj[0];
+    Residual[1] = mPtImY - aPtImProj[1];
 
     return true;
 }
 
-/* AutoDiff on doubles */
+/* MicMac M2C : AutoDiff on doubles */
 template <typename T>
 bool cResidualError::operator2(const T* const aAngleT,
                                const T* const aCPerspT,
@@ -208,7 +423,8 @@ bool cResidualError::operator2(const T* const aAngleT,
     aPtCamDir = aDist*aPtCamDir;
 
     T aPtImProj = aFoc*aPtCamDir + aPP;
-    Residual = mPtIm - aPtImProj;
+    Residual[0] = mPtImX - aPtImProj[0];
+    Residual[1] = mPtImY - aPtImProj[1];
 
 
     return true;
@@ -222,7 +438,7 @@ class cBundleAdj
         cBundleAdj();
         ~cBundleAdj(){}
 
-        virtual void Optimize();
+        virtual void Optimize(int MODE);
         virtual void BuildProblem();
         virtual void SetCeresOptions();
 
@@ -231,7 +447,7 @@ class cBundleAdj
 
 cBundleAdj::cBundleAdj(){}
 
-void cBundleAdj::Optimize()
+void cBundleAdj::Optimize(int MODE)
 {}
 
 void cBundleAdj::BuildProblem()
@@ -246,15 +462,19 @@ class cBundleAdjSimple : public cBundleAdj
 {
     public:
         cBundleAdjSimple(BALProblemVec&);
+        cBundleAdjSimple(BALProblem_&);
         ~cBundleAdjSimple(){}
 
-        virtual void Optimize();
+        virtual void Optimize(int MODE);
 
 
     private:    
 
         //allocate the solver with observations/parameters 
         virtual void BuildProblem();
+        void BuildProblem_1ELBLOCKS_VEC();
+        void BuildProblem_1ELBLOCKS();
+        void BuildProblem_3ELBLOCKS();
         
         virtual void SetCeresOptions();//see bundle_adjuster.cc for setting options
         void SetMinimizer();
@@ -262,6 +482,7 @@ class cBundleAdjSimple : public cBundleAdj
 
         Problem       * mCeresPb;
         BALProblemVec * mBAPb;
+        BALProblem_   * mBAPb_;
 
         ceres::Solver::Options        mSolOpt;
         ceres::Solver::Summary        mSummary;
@@ -269,6 +490,11 @@ class cBundleAdjSimple : public cBundleAdj
 
 cBundleAdjSimple::cBundleAdjSimple(BALProblemVec& aBAP) :
     mBAPb(&aBAP)
+{
+}
+
+cBundleAdjSimple::cBundleAdjSimple(BALProblem_& aBAP) :
+    mBAPb_(&aBAP)
 {
 }
 
@@ -302,14 +528,14 @@ void cBundleAdjSimple::SetMinimizer()
 
     //relaxes the requirement to decrease the obj function at each iter step; 
     //may turn very efficient in the long term;
-    mSolOpt.use_nonmonotonic_steps = true;
+    //mSolOpt.use_nonmonotonic_steps = true;
 
-    mSolOpt.max_num_iterations = 50;
+    mSolOpt.max_num_iterations = 25;
     mSolOpt.minimizer_progress_to_stdout = true;
-    mSolOpt.num_threads = 20;
+    //mSolOpt.num_threads = 20;
 
 
-    mSolOpt.sparse_linear_algebra_library_type = SUITE_SPARSE; //there exist two others
+    //mSolOpt.sparse_linear_algebra_library_type = SUITE_SPARSE; //there exist two others
     //options->use_inner_iterations ?
 }
 
@@ -319,39 +545,126 @@ void cBundleAdjSimple::SetCeresOptions()
     SetOrdering();
 }
 
-void cBundleAdjSimple::Optimize()
-{
-    BuildProblem();
-
-    SetCeresOptions();
-
-    ceres::Solve(mSolOpt,mCeresPb,&mSummary);
-}
 
 void cBundleAdjSimple::BuildProblem()
+{}
+
+void cBundleAdjSimple::BuildProblem_1ELBLOCKS_VEC()
 {
+    std::cout << "cBundleAdjSimple::BuildProblem()\n";
+    mCeresPb = new ceres::Problem;
 
     /* create cost function per observation and AddResidualBlock */
     for (int aK=0; aK<mBAPb->ObservationNum(); aK++)
     {
-        CostFunction* aCostF = cResidualError::Create( mBAPb->ObservationIth(aK) );
-        //CostFunction* aCostF = (new AutoDiffCostFunction<cResidualError,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1> 
-          //                    (new cResidualError(mBAPb->ObservationIth(aK))));
+
+        CostFunction* aCostF = cResidualError::Create_1ELBLOCKS_VEC( mBAPb->ObservationIth(aK) );
         LossFunction * aLossF = NULL;// new HuberLoss(1.0);
    
+     /*   std::cout << "---+++RR " << (*mBAPb->PoseROfPt(aK))[0] << " " << (*mBAPb->PoseROfPt(aK))[1] << " " << (*mBAPb->PoseROfPt(aK))[2] << "\n";
+        std::cout << "---+++CP " << (*mBAPb->PoseCPOfPt(aK))[0] << " " << (*mBAPb->PoseCPOfPt(aK))[1] << " " << (*mBAPb->PoseCPOfPt(aK))[2] << "\n";
+        std::cout << "---+++Pt3D " << (*mBAPb->Pt3dOfPt2d(aK))[0] << " " << (*mBAPb->Pt3dOfPt2d(aK))[1] << " " << (*mBAPb->Pt3dOfPt2d(aK))[2] << " " << "\n";
+       */ 
 
         mCeresPb->AddResidualBlock(aCostF,aLossF,
-                                   &mBAPb->PoseROfPt(aK)[0],
-                                   &mBAPb->PoseROfPt(aK)[1],
-                                   &mBAPb->PoseROfPt(aK)[2],
-                                   &mBAPb->PoseCPOfPt(aK)[0],
-                                   &mBAPb->PoseCPOfPt(aK)[1],
-                                   &mBAPb->PoseCPOfPt(aK)[2],
-                                   mBAPb->PoseCalOfPt(aK),
-                                   &mBAPb->Pt3dOfPt2d(aK)[0],
-                                   &mBAPb->Pt3dOfPt2d(aK)[1],
-                                   &mBAPb->Pt3dOfPt2d(aK)[2]);
+                                   &(*mBAPb->PoseROfPt(aK))[0],
+                                   &(*mBAPb->PoseROfPt(aK))[1],
+                                   &(*mBAPb->PoseROfPt(aK))[2],
+                                   &(*mBAPb->PoseCPOfPt(aK))[0],
+                                   &(*mBAPb->PoseCPOfPt(aK))[1],
+                                   &(*mBAPb->PoseCPOfPt(aK))[2],
+                                     mBAPb->PoseCalOfPt(aK),
+                                   &(*mBAPb->Pt3dOfPt2d(aK))[0],
+                                   &(*mBAPb->Pt3dOfPt2d(aK))[1],
+                                   &(*mBAPb->Pt3dOfPt2d(aK))[2]);
+        /*mCeresPb->AddResidualBlock(aCostF,aLossF,
+                                   (mBAPb->PoseROfPt(aK,0)),
+                                   (mBAPb->PoseROfPt(aK,1)),
+                                   (mBAPb->PoseROfPt(aK,2)),
+                                   (mBAPb->PoseCPOfPt(aK,0)),
+                                   (mBAPb->PoseCPOfPt(aK,1)),
+                                   (mBAPb->PoseCPOfPt(aK,2)),
+                                     mBAPb->PoseCalOfPt(aK),
+                                   (mBAPb->Pt3dOfPt2d(aK,0)),
+                                   (mBAPb->Pt3dOfPt2d(aK,1)),
+                                   (mBAPb->Pt3dOfPt2d(aK,2)));*/
+
     }   
+}
+
+void cBundleAdjSimple::BuildProblem_1ELBLOCKS()
+{
+    mCeresPb = new ceres::Problem;
+
+    /* create cost function per observation and AddResidualBlock */
+    for (int aK=0; aK<mBAPb_->ObservationNum(); aK++)
+    {
+
+        CostFunction* aCostF = cResidualError::Create_1ELBLOCKS( mBAPb_->ObservationIth(aK)[0], mBAPb_->ObservationIth(aK)[1] );
+        LossFunction * aLossF = NULL;// new HuberLoss(1.0);
+        
+        //std::cout << "*** Pose=" << mBAPb_->PoseCPOfPt(aK)[0] << " ,R=" << mBAPb_->PoseROfPt(aK)[0] << " "  << "\n" ;
+//        std::cout << "*** Pt=" << mBAPb_->ObservationIth(aK)[0] << " ,R=" << mBAPb_->ObservationIth(aK)[1] << " "  << "\n" ;
+        
+        mCeresPb->AddResidualBlock(aCostF,aLossF,
+                                   mBAPb_->PoseROfPt(aK),
+                                   mBAPb_->PoseROfPt(aK)+1,
+                                   mBAPb_->PoseROfPt(aK)+2,
+                                   mBAPb_->PoseCPOfPt(aK), 
+                                   mBAPb_->PoseCPOfPt(aK)+1, 
+                                   mBAPb_->PoseCPOfPt(aK)+2, 
+                                   mBAPb_->PoseCalOfPt(aK),
+                                   mBAPb_->Pt3dOfPt2d(aK),
+                                   mBAPb_->Pt3dOfPt2d(aK)+1,
+                                   mBAPb_->Pt3dOfPt2d(aK)+2);
+                                   
+
+    }
+    
+}
+
+void cBundleAdjSimple::BuildProblem_3ELBLOCKS()
+{
+    mCeresPb = new ceres::Problem;
+
+    /* create cost function per observation and AddResidualBlock */
+    for (int aK=0; aK<mBAPb_->ObservationNum(); aK++)
+    {
+
+        CostFunction* aCostF = cResidualError::Create_3ELBLOCKS( mBAPb_->ObservationIth(aK)[0], mBAPb_->ObservationIth(aK)[1] );
+        LossFunction * aLossF = NULL;// new HuberLoss(1.0);
+        
+        //std::cout << "*** Pose=" << mBAPb_->PoseCPOfPt(aK)[0] << " ,R=" << mBAPb_->PoseROfPt(aK)[0] << " "  << "\n" ;
+//        std::cout << "*** Pt=" << mBAPb_->ObservationIth(aK)[0] << " ,R=" << mBAPb_->ObservationIth(aK)[1] << " "  << "\n" ;
+        
+        mCeresPb->AddResidualBlock(aCostF,aLossF,
+                                   mBAPb_->PoseROfPt(aK),
+                                   mBAPb_->PoseCPOfPt(aK), 
+                                   mBAPb_->PoseCalOfPt(aK),
+                                   mBAPb_->Pt3dOfPt2d(aK));
+                                   
+
+    }
+    
+}
+
+void cBundleAdjSimple::Optimize(int MODE)
+{
+    if (MODE==0)
+    {
+        std::cout << "Optimize 3ELBLOCKS" << "\n";
+        BuildProblem_3ELBLOCKS();
+    }
+    else
+    {
+        std::cout << "Optimize 1ELBLOCKS" << "\n";
+        BuildProblem_1ELBLOCKS();
+    }
+
+    SetCeresOptions();
+
+    ceres::Solve(mSolOpt,mCeresPb,&mSummary);
+    std::cout << mSummary.FullReport() << "\n";
 }
 
 /* What happens here:
@@ -369,25 +682,30 @@ int TestEqCollinear_main(int argc,char ** argv)
 {
     if (argc < 3)
         throw std::invalid_argument("TestER EQCOL : not enough input arguments");
-    
+   
+    int DO1BLOCK = 0;
+    if (argc==4)
+    {
+        std::string Arg3 = std::string(argv[3]);
+        if (Arg3 == "1") 
+            DO1BLOCK = 1;
+    }
     /* Load the input data */
-    BALProblemVec aBAProb; 
+    BALProblem_ aBAProb; 
+//    BALProblemVec aBAProb; 
     aBAProb.ReadBAL(argv[2]);
 
     aBAProb.WriteToPly("InputCloud.ply");
 
-    if (0)
-    {
     /* Allocate in the solver */
     cBundleAdjSimple aBAS(aBAProb);
     
     /* Solve */
-    aBAS.Optimize();
+    aBAS.Optimize(DO1BLOCK);
 
     /* Save to ply */
-    //aBAProb.WriteToPLYFile("BAPr-adj.ply"); 
+    aBAProb.WriteToPly("OutputCloud.ply"); 
     
-    }
 
 
     return(1.0);

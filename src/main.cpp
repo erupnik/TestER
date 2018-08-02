@@ -17,7 +17,8 @@ void PrintHelp(std::string aArg)
 void PrintHelpEQCOL(std::string aArg)
 {
     std::cerr << "Usage: " << aArg << " \n"   
-              << "first_arg :: the BAL format file\n";
+              << "1st_arg [string] :: the BAL format file\n"
+              << "2nd_arg [bool]   :: 1 - cost function on 1ELBlocks, 0 - 3ELBlocks  Def=[false]\n";
 }
 
 int main(int argc, char** argv)
@@ -57,7 +58,8 @@ int main(int argc, char** argv)
                 return 1;
             }
         }
-
+        if (argc==4)
+            std::cout << argv[3] << "\n";
 
         return(TestEqCollinear_main(argc,argv));
     }
