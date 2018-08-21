@@ -1,0 +1,6 @@
+Exit with code 1 
+Generated from line 205  of file /home/er/micmac/src/util/error.cpp 
+PID=11188
+Context=[cEliseFatalErrorHandler::cEFEH_OnErreur]
+GMEC:mes=Unknown eConventionsOrientation line=3185 file=/home/er/micmac/src/ori_phot/orilib.cpp
+MM3D-Command=["mm3d" "TestLib" "BAL2MM" "I.*tif" "BAL2" ]

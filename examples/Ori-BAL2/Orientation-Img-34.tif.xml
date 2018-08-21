@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<OrientationConique>
+     <TypeProj>eProjStenope</TypeProj>
+     <FileInterne>Ori-BAL2/AutoCal_Foc-50000.xml</FileInterne>
+     <Externe>
+          <AltiSol>-7.02268660423171109</AltiSol>
+          <Profondeur>7.01426130221933697</Profondeur>
+          <KnownConv>eConvApero_DistM2C</KnownConv>
+          <Centre>0.387223699671453203 -0.964167261944113174 0.516581853248559764</Centre>
+          <IncCentre>1 1 1</IncCentre>
+          <ParamRotation>
+               <CodageAngulaire>0.129130485935162326 -0.133457349146079124 -0.0224199970498473108</CodageAngulaire>
+          </ParamRotation>
+     </Externe>
+     <ConvOri>
+          <ConvExplicite>
+               <MatrSenC2M>false</MatrSenC2M>
+               <Convention>eConvApero_DistM2C</Convention>
+          </ConvExplicite>
+     </ConvOri>
+</OrientationConique>

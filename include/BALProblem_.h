@@ -29,16 +29,21 @@ class BALProblem_
         BALProblem_();
         ~BALProblem_(){}
 
+        const int           PoseNum() {return mPoseNum;}
+        const int           PtNum() {return mPtNum;}
         const int           ObservationNum() {return mObsNum;}
         const double* const ObservationIth(const int P) { return mObs + P*2; };
       
         bool ReadBAL   (const std::string&); 
         void WriteToPly(const std::string&);
                                                       
+        double* Pose(const int P)        { return mPoses + P*CAMERA_BLOCK_SIZE; }
+        double* PoseOfPt(const int P)    { return mPoses + mObsPoseId[P]*CAMERA_BLOCK_SIZE; }
         double* PoseCPOfPt(const int P)  { return mPoses + mObsPoseId[P]*CAMERA_BLOCK_SIZE + 3; }
         double* PoseROfPt(const int P)   { return mPoses + mObsPoseId[P]*CAMERA_BLOCK_SIZE; }
         double* PoseCalOfPt(const int P) { return mPoses + mObsPoseId[P]*CAMERA_BLOCK_SIZE + 6; }
         double* Pt3dOfPt2d(const int P)  { return mPt3d  + mObsPt3dId[P]*POINT_BLOCK_SIZE; }
+        double* Pt3d(const int P)        { return mPt3d  + P*POINT_BLOCK_SIZE; }
                                                       
 
     private:

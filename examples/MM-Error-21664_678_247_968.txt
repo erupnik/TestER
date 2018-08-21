@@ -1,0 +1,6 @@
+Exit with code 1 
+Generated from line 205  of file /home/er/micmac/src/util/error.cpp 
+PID=21664
+Context=[cEliseFatalErrorHandler::cEFEH_OnErreur]
+GMEC:mes=Unitialized Value in cValGesInit line=841 file=/home/er/micmac/include/general/util.h
+MM3D-Command=["mm3d" "TestLib" "BAL2MM" "I.*tif" "BAL2" ]

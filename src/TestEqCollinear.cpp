@@ -20,9 +20,9 @@ using namespace ceres;
 class cResidualError
 {
     public :
-        cResidualError(Vec2d& aPtIm) : 
+/*        cResidualError(Vec2d& aPtIm) : 
           mPtImX   (aPtIm[0]),
-          mPtImY   (aPtIm[1]) {}
+          mPtImY   (aPtIm[1]) {}*/
         cResidualError(double PtImX,double PtImY) : 
           mPtImX(PtImX),
           mPtImY(PtImY) {}
@@ -70,6 +70,11 @@ class cResidualError
                          const T* const aPt3T,
                          T* Residual) const;
 
+        template <typename T>
+        bool operator() (const T* const aPoseT,//angles, persp cent, incal    
+                         const T* const aPt3T,
+                         T* Residual) const;
+
 
         template <typename T>
         bool operator2  (const T* const aAngleT,
@@ -78,9 +83,10 @@ class cResidualError
                          const T* const aPt3T,
                          T* Residual) const;
     
-        static CostFunction * Create_1ELBLOCKS_VEC(Vec2d&);
+ //       static CostFunction * Create_1ELBLOCKS_VEC(Vec2d&);
         static CostFunction * Create_1ELBLOCKS(const double,const double);
         static CostFunction * Create_3ELBLOCKS(const double,const double);
+        static CostFunction * Create_9ELBLOCKS(const double,const double);
 
     private:
 
@@ -91,16 +97,16 @@ class cResidualError
     
 };
 
-CostFunction * cResidualError::Create_1ELBLOCKS_VEC(Vec2d& aPtIm)
-{
+//CostFunction * cResidualError::Create_1ELBLOCKS_VEC(Vec2d& aPtIm)
+//{
     /* 2- residual
        3- angles
        3- optical center
        5- PPx,PPy,focal,dr1,dr2 
        3- point 3d */
 
-    return  (new AutoDiffCostFunction<cResidualError,2,1,1,1,1,1,1,5,1,1,1> (new cResidualError(aPtIm)));
-}
+//    return  (new AutoDiffCostFunction<cResidualError,2,1,1,1,1,1,1,5,1,1,1> (new cResidualError(aPtIm)));
+//}
 
 CostFunction * cResidualError::Create_1ELBLOCKS(const double PtImX,const double PtImY)
 {
@@ -113,6 +119,13 @@ CostFunction * cResidualError::Create_3ELBLOCKS(const double PtImX,const double 
 {
 
     return  (new AutoDiffCostFunction<cResidualError,2,3,3,5,3> (new cResidualError(PtImX,PtImY)));
+
+}
+
+CostFunction * cResidualError::Create_9ELBLOCKS(const double PtImX,const double PtImY)
+{
+
+    return  (new AutoDiffCostFunction<cResidualError,2,11,3> (new cResidualError(PtImX,PtImY)));
 
 }
 
@@ -350,6 +363,46 @@ bool cResidualError::operator()(const T* const aAngleT,
     return true;
 }
 
+template <typename T>
+bool cResidualError::operator()(const T* const aPoseT,//angles, persp cent, incal    
+                                const T* const aPt3T,
+                                T* Residual) const
+{
+
+    T aPtCam[3];
+    ceres::AngleAxisRotatePoint(aPoseT,aPt3T,aPtCam);
+
+    aPtCam[0] += aPoseT[3];
+    aPtCam[1] += aPoseT[4];
+    aPtCam[2] += aPoseT[5];
+
+    T aPtCamDir[2] = {-aPtCam[0]/aPtCam[2],
+                      -aPtCam[1]/aPtCam[2]}; 
+   
+    T aPP[2];
+    const T& aFoc = aPoseT[6];
+    aPP[0] = aPoseT[7];
+    aPP[1] = aPoseT[8];
+    const T& aDR1 = aPoseT[9];
+    const T& aDR2 = aPoseT[10];
+
+    T aRho2 = aPtCamDir[0] * aPtCamDir[0] + aPtCamDir[1] * aPtCamDir[1];
+    T aRho4 = aRho2 * aRho2;
+    T aDist = 1.0 + aRho2*aDR1 + aRho4*aDR2;
+
+    aPtCamDir[0] = aDist*aPtCamDir[0];
+    aPtCamDir[1] = aDist*aPtCamDir[1];
+
+    T aPtImProj[2];
+    aPtImProj[0] = aFoc*aPtCamDir[0] + aPP[0];
+    aPtImProj[1] = aFoc*aPtCamDir[1] + aPP[1];    
+    
+    Residual[0] = -mPtImX + aPtImProj[0];
+    Residual[1] = -mPtImY + aPtImProj[1];
+
+    return true;
+}
+
 
 
 /* MicMac M2C : AutoDiff calculated on Eigen matrices */
@@ -438,7 +491,7 @@ class cBundleAdj
         cBundleAdj();
         ~cBundleAdj(){}
 
-        virtual void Optimize(int MODE);
+        virtual void Optimize();
         virtual void BuildProblem();
         virtual void SetCeresOptions();
 
@@ -447,7 +500,7 @@ class cBundleAdj
 
 cBundleAdj::cBundleAdj(){}
 
-void cBundleAdj::Optimize(int MODE)
+void cBundleAdj::Optimize()
 {}
 
 void cBundleAdj::BuildProblem()
@@ -462,19 +515,21 @@ class cBundleAdjSimple : public cBundleAdj
 {
     public:
         cBundleAdjSimple(BALProblemVec&);
-        cBundleAdjSimple(BALProblem_&);
+        cBundleAdjSimple(BALProblem_&,int);
         ~cBundleAdjSimple(){}
 
-        virtual void Optimize(int MODE);
+        virtual void Optimize();
 
 
     private:    
 
         //allocate the solver with observations/parameters 
         virtual void BuildProblem();
-        void BuildProblem_1ELBLOCKS_VEC();
+        //void BuildProblem_1ELBLOCKS_VEC();
         void BuildProblem_1ELBLOCKS();
+
         void BuildProblem_3ELBLOCKS();
+        void BuildProblem_9ELBLOCKS();
         
         virtual void SetCeresOptions();//see bundle_adjuster.cc for setting options
         void SetMinimizer();
@@ -483,6 +538,8 @@ class cBundleAdjSimple : public cBundleAdj
         Problem       * mCeresPb;
         BALProblemVec * mBAPb;
         BALProblem_   * mBAPb_;
+
+        int MODE;
 
         ceres::Solver::Options        mSolOpt;
         ceres::Solver::Summary        mSummary;
@@ -493,8 +550,9 @@ cBundleAdjSimple::cBundleAdjSimple(BALProblemVec& aBAP) :
 {
 }
 
-cBundleAdjSimple::cBundleAdjSimple(BALProblem_& aBAP) :
-    mBAPb_(&aBAP)
+cBundleAdjSimple::cBundleAdjSimple(BALProblem_& aBAP,int aM) :
+    mBAPb_(&aBAP),
+    MODE(aM)
 {
 }
 
@@ -511,7 +569,29 @@ void cBundleAdjSimple::SetOrdering()
     //automatically determine ParameterBlock order
     //ceres::Options::ordering_type = ceres::SCHUR;
 
-    //otherwise create/add appropriate Parameter blocks
+    //for now only when blocks are group by 9 and 3
+    if (MODE==0)
+    {
+        //otherwise create/add appropriate Parameter blocks
+        ceres::ParameterBlockOrdering* ordering =
+            new ceres::ParameterBlockOrdering;
+  
+        // The points come before the cameras.
+        for (int aK=0; aK<mBAPb_->PtNum(); aK++)
+        {
+          ordering->AddElementToGroup(mBAPb_->Pt3d(aK),0);
+        }
+  
+        for (int aK=0; aK<mBAPb_->PoseNum(); aK++) 
+        {
+          // When using axis-angle, there is a single parameter block for
+          // the entire camera.
+          ordering->AddElementToGroup(mBAPb_->Pose(aK), 1);
+        }
+ 
+        mSolOpt.linear_solver_ordering.reset(ordering);
+    }
+
 }
 
 void cBundleAdjSimple::SetMinimizer()
@@ -549,22 +629,18 @@ void cBundleAdjSimple::SetCeresOptions()
 void cBundleAdjSimple::BuildProblem()
 {}
 
-void cBundleAdjSimple::BuildProblem_1ELBLOCKS_VEC()
+/*void cBundleAdjSimple::BuildProblem_1ELBLOCKS_VEC()
 {
     std::cout << "cBundleAdjSimple::BuildProblem()\n";
     mCeresPb = new ceres::Problem;
 
-    /* create cost function per observation and AddResidualBlock */
+    // create cost function per observation and AddResidualBlock 
     for (int aK=0; aK<mBAPb->ObservationNum(); aK++)
     {
 
         CostFunction* aCostF = cResidualError::Create_1ELBLOCKS_VEC( mBAPb->ObservationIth(aK) );
         LossFunction * aLossF = NULL;// new HuberLoss(1.0);
    
-     /*   std::cout << "---+++RR " << (*mBAPb->PoseROfPt(aK))[0] << " " << (*mBAPb->PoseROfPt(aK))[1] << " " << (*mBAPb->PoseROfPt(aK))[2] << "\n";
-        std::cout << "---+++CP " << (*mBAPb->PoseCPOfPt(aK))[0] << " " << (*mBAPb->PoseCPOfPt(aK))[1] << " " << (*mBAPb->PoseCPOfPt(aK))[2] << "\n";
-        std::cout << "---+++Pt3D " << (*mBAPb->Pt3dOfPt2d(aK))[0] << " " << (*mBAPb->Pt3dOfPt2d(aK))[1] << " " << (*mBAPb->Pt3dOfPt2d(aK))[2] << " " << "\n";
-       */ 
 
         mCeresPb->AddResidualBlock(aCostF,aLossF,
                                    &(*mBAPb->PoseROfPt(aK))[0],
@@ -577,20 +653,9 @@ void cBundleAdjSimple::BuildProblem_1ELBLOCKS_VEC()
                                    &(*mBAPb->Pt3dOfPt2d(aK))[0],
                                    &(*mBAPb->Pt3dOfPt2d(aK))[1],
                                    &(*mBAPb->Pt3dOfPt2d(aK))[2]);
-        /*mCeresPb->AddResidualBlock(aCostF,aLossF,
-                                   (mBAPb->PoseROfPt(aK,0)),
-                                   (mBAPb->PoseROfPt(aK,1)),
-                                   (mBAPb->PoseROfPt(aK,2)),
-                                   (mBAPb->PoseCPOfPt(aK,0)),
-                                   (mBAPb->PoseCPOfPt(aK,1)),
-                                   (mBAPb->PoseCPOfPt(aK,2)),
-                                     mBAPb->PoseCalOfPt(aK),
-                                   (mBAPb->Pt3dOfPt2d(aK,0)),
-                                   (mBAPb->Pt3dOfPt2d(aK,1)),
-                                   (mBAPb->Pt3dOfPt2d(aK,2)));*/
 
     }   
-}
+}*/
 
 void cBundleAdjSimple::BuildProblem_1ELBLOCKS()
 {
@@ -648,14 +713,36 @@ void cBundleAdjSimple::BuildProblem_3ELBLOCKS()
     
 }
 
-void cBundleAdjSimple::Optimize(int MODE)
+void cBundleAdjSimple::BuildProblem_9ELBLOCKS()
+{
+    mCeresPb = new ceres::Problem;
+
+    for (int aK=0; aK<mBAPb_->ObservationNum(); aK++)
+    {
+        CostFunction* aCostF = cResidualError::Create_9ELBLOCKS( mBAPb_->ObservationIth(aK)[0], mBAPb_->ObservationIth(aK)[1] );
+        LossFunction * aLossF = NULL;// new HuberLoss(1.0);
+        
+        mCeresPb->AddResidualBlock(aCostF,aLossF,
+                                   mBAPb_->PoseOfPt(aK),
+                                   mBAPb_->Pt3dOfPt2d(aK));
+        
+    }
+
+}
+
+void cBundleAdjSimple::Optimize()
 {
     if (MODE==0)
+    {
+        std::cout << "Optimize 9ELBLOCKS (camera block + pt3d block)" << "\n";
+        BuildProblem_9ELBLOCKS();
+    }
+    else if (MODE==1)
     {
         std::cout << "Optimize 3ELBLOCKS" << "\n";
         BuildProblem_3ELBLOCKS();
     }
-    else
+    else if (MODE==2)
     {
         std::cout << "Optimize 1ELBLOCKS" << "\n";
         BuildProblem_1ELBLOCKS();
@@ -692,16 +779,15 @@ int TestEqCollinear_main(int argc,char ** argv)
     }
     /* Load the input data */
     BALProblem_ aBAProb; 
-//    BALProblemVec aBAProb; 
+    
     aBAProb.ReadBAL(argv[2]);
-
     aBAProb.WriteToPly("InputCloud.ply");
 
     /* Allocate in the solver */
-    cBundleAdjSimple aBAS(aBAProb);
+    cBundleAdjSimple aBAS(aBAProb,DO1BLOCK);
     
     /* Solve */
-    aBAS.Optimize(DO1BLOCK);
+    aBAS.Optimize();
 
     /* Save to ply */
     aBAProb.WriteToPly("OutputCloud.ply"); 

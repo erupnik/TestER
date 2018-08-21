@@ -1,0 +1,18 @@
+<Global>
+
+	<ChantierDescripteur >
+
+
+   
+		<KeyedNamesAssociations>
+			<Calcs>
+				<Arrite> 1 1 </Arrite>
+				<Direct>
+					<PatternTransform> (.*).tif </PatternTransform>
+					<CalcName> 50 </CalcName>
+				</Direct>
+			</Calcs>	
+			<Key> NKS-Assoc-STD-FOC </Key>
+		</KeyedNamesAssociations> 
+	</ChantierDescripteur>
+</Global>

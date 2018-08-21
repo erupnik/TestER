@@ -1,0 +1,40 @@
+=================================================================
+"mm3d" "Campari" ".*tif" "Ori-BAL/" "Ori-Campari" 
+ PID : 9699 ;   [Beginning at ] Thu Jul 19 15:00:58 2018
+=================================================================
+"mm3d" "Campari" ".*tif" "Ori-BAL/" "Ori-Campari" "-help" 
+ PID : 9727 ;   [Beginning at ] Thu Jul 19 15:01:25 2018
+=================================================================
+"mm3d" "Campari" ".*tif" "Ori-BAL/" "Ori-Campari" 
+ PID : 9815 ;   [Beginning at ] Thu Jul 19 15:07:31 2018
+=================================================================
+"mm3d" "Campari" ".*tif" "Ori-BAL/" "Ori-Campari" 
+ PID : 9864 ;   [Beginning at ] Thu Jul 19 15:10:15 2018
+=================================================================
+"mm3d" "Campari" ".*tif" "Ori-BAL/" "Ori-Campari" 
+ PID : 9900 ;   [Beginning at ] Thu Jul 19 15:10:50 2018
+=================================================================
+"mm3d" "Campari" ".*tif" "Ori-BAL/" "Ori-Campari" 
+ PID : 9922 ;   [Beginning at ] Thu Jul 19 15:11:01 2018
+=================================================================
+"mm3d" "Campari" ".*tif" "Ori-BAL/" "Ori-Campari" 
+ PID : 9954 ;   [Beginning at ] Thu Jul 19 15:12:39 2018
+=================================================================
+"mm3d" "Campari" ".*tif" "Ori-BAL/" "Ori-Campari" 
+ PID : 10432 ;   [Beginning at ] Thu Jul 19 15:13:21 2018
+ PID : 10432 ;   [Ending correctly at] Thu Jul 19 15:13:34 2018
+=================================================================
+"mm3d" "AperiCloud" ".*tif" "Ori-Ori-Campari/" "RGB=0" 
+ PID : 11195 ;   [Beginning at ] Thu Jul 19 15:14:43 2018
+=================================================================
+"mm3d" "AperiCloud" ".*tif" "Ori-Ori-Campari/" "RGB=0" "-help" 
+ PID : 12004 ;   [Beginning at ] Thu Jul 19 15:15:00 2018
+=================================================================
+"mm3d" "AperiCloud" ".*tif" "Ori-Ori-Campari/" "RGB=0" "-help" 
+ PID : 12127 ;   [Beginning at ] Thu Jul 19 15:27:46 2018
+=================================================================
+"mm3d" "AperiCloud" ".*tif" "Ori-Ori-Campari/" "RGB=0" "WithPoints=0" 
+ PID : 12130 ;   [Beginning at ] Thu Jul 19 15:28:21 2018
+=================================================================
+"mm3d" "AperiCloud" ".*tif" "Ori-Ori-Campari/" "RGB=0" "ExpTxt=1" 
+ PID : 12775 ;   [Beginning at ] Thu Jul 19 15:28:41 2018
