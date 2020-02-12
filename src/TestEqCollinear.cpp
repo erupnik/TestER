@@ -612,7 +612,7 @@ void cBundleAdjSimple::SetMinimizer()
 
     mSolOpt.max_num_iterations = 25;
     mSolOpt.minimizer_progress_to_stdout = true;
-    //mSolOpt.num_threads = 20;
+    mSolOpt.num_threads = 20;
 
 
     //mSolOpt.sparse_linear_algebra_library_type = SUITE_SPARSE; //there exist two others
