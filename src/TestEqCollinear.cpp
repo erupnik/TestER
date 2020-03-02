@@ -129,6 +129,8 @@ CostFunction * cResidualError::Create_9ELBLOCKS(const double PtImX,const double 
 
 }
 
+
+
 /* Bundler M2C : Parameters submitted one by one, operations on doubles */
 template <typename T>
 bool cResidualError::operator()(const T* const aWT,

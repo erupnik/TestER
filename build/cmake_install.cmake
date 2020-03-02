@@ -12,7 +12,7 @@ if(NOT DEFINED CMAKE_INSTALL_CONFIG_NAME)
     string(REGEX REPLACE "^[^A-Za-z0-9_]+" ""
            CMAKE_INSTALL_CONFIG_NAME "${BUILD_TYPE}")
   else()
-    set(CMAKE_INSTALL_CONFIG_NAME "Release")
+    set(CMAKE_INSTALL_CONFIG_NAME "")
   endif()
   message(STATUS "Install configuration: \"${CMAKE_INSTALL_CONFIG_NAME}\"")
 endif()
@@ -32,13 +32,12 @@ if(NOT DEFINED CMAKE_INSTALL_SO_NO_EXE)
   set(CMAKE_INSTALL_SO_NO_EXE "1")
 endif()
 
-if(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspecified")
-  if(EXISTS "$ENV{DESTDIR}/home/er/Documents/d_development/MMVII/TestER/bin/TestER" AND
-     NOT IS_SYMLINK "$ENV{DESTDIR}/home/er/Documents/d_development/MMVII/TestER/bin/TestER")
-    file(RPATH_CHECK
-         FILE "$ENV{DESTDIR}/home/er/Documents/d_development/MMVII/TestER/bin/TestER"
-         RPATH "")
-  endif()
+# Is this installation the result of a crosscompile?
+if(NOT DEFINED CMAKE_CROSSCOMPILING)
+  set(CMAKE_CROSSCOMPILING "FALSE")
+endif()
+
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
   list(APPEND CMAKE_ABSOLUTE_DESTINATION_FILES
    "/home/er/Documents/d_development/MMVII/TestER/bin/TestER")
   if(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION)
@@ -47,13 +46,7 @@ if(NOT CMAKE_INSTALL_COMPONENT OR "${CMAKE_INSTALL_COMPONENT}" STREQUAL "Unspeci
   if(CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(FATAL_ERROR "ABSOLUTE path INSTALL DESTINATION forbidden (by caller): ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
-file(INSTALL DESTINATION "/home/er/Documents/d_development/MMVII/TestER/bin" TYPE EXECUTABLE FILES "/home/er/Documents/d_development/MMVII/TestER/build/TestER")
-  if(EXISTS "$ENV{DESTDIR}/home/er/Documents/d_development/MMVII/TestER/bin/TestER" AND
-     NOT IS_SYMLINK "$ENV{DESTDIR}/home/er/Documents/d_development/MMVII/TestER/bin/TestER")
-    if(CMAKE_INSTALL_DO_STRIP)
-      execute_process(COMMAND "/usr/bin/strip" "$ENV{DESTDIR}/home/er/Documents/d_development/MMVII/TestER/bin/TestER")
-    endif()
-  endif()
+file(INSTALL DESTINATION "/home/er/Documents/d_development/MMVII/TestER/bin" TYPE EXECUTABLE FILES "/home/er/Documents/d_development/MMVII/TestER/build/CMakeFiles/CMakeRelink.dir/TestER")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT)
